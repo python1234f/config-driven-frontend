@@ -1,0 +1,154 @@
+:root {
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
+    Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
+  color: #0b1220;
+  background: #f6f7fb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.appShell {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  min-height: 100vh;
+}
+
+.panel {
+  padding: 16px;
+  border-right: 1px solid #e6e8f0;
+  background: #ffffff;
+}
+
+.main {
+  padding: 16px;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e6e8f0;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.rowWrap {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.stack {
+  display: grid;
+  gap: 10px;
+}
+
+.muted {
+  color: #55607a;
+  font-size: 12px;
+}
+
+.h1 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+}
+
+.h2 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+}
+
+button,
+select,
+input {
+  font: inherit;
+}
+
+button {
+  border: 1px solid #d6d9e6;
+  background: #0b1220;
+  color: white;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #ffffff;
+  color: #0b1220;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+select {
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: 1px solid #d6d9e6;
+  background: #ffffff;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #d6d9e6;
+  background: #f6f7fb;
+  font-size: 12px;
+  color: #0b1220;
+}
+
+.badge.warn {
+  border-color: #f4c06a;
+  background: #fff6e5;
+}
+
+.badge.danger {
+  border-color: #f4a3a3;
+  background: #ffecec;
+}
+
+.list {
+  display: grid;
+  gap: 8px;
+}
+
+.listItem {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #e6e8f0;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.listItem.selected {
+  border-color: #0b1220;
+}
+
+.json {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  background: #0b1220;
+  color: #f6f7fb;
+  padding: 10px;
+  border-radius: 10px;
+  overflow: auto;
+  max-height: 260px;
+}
+
