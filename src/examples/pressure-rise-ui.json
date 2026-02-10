@@ -1,0 +1,32 @@
+{
+  "id": "ui-pressure-rise-v1",
+  "version": 1,
+  "palettes": {
+    "traffic": {
+      "0.0": "#2ecc71",
+      "0.5": "#f1c40f",
+      "1.0": "#e74c3c"
+    }
+  },
+  "scales": {
+    "pressureBar": {
+      "range": { "min": 60, "max": 85 },
+      "colors": { "palette": "traffic" }
+    }
+  },
+  "signals": {
+    "PT-101": {
+      "scale": "pressureBar",
+      "badge": { "enabled": true }
+    }
+  },
+  "units": {
+    "column": {
+      "fill": { "fromSignal": "PT-101", "scale": "pressureBar" },
+      "stroke": { "fromSignal": "PT-101", "scale": "pressureBar" }
+    }
+  },
+  "motion": {
+    "transitionMs": 300
+  }
+}

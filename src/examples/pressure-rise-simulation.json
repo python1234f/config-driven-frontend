@@ -1,0 +1,46 @@
+{
+  "id": "pressure-rise",
+  "label": "Pressure rise (distillation section)",
+  "loop": true,
+  "tickMs": 800,
+  "durationTicks": 30,
+  "startTimestampMs": 1735689600000,
+  "clientConfig": {
+    "id": "clientA",
+    "features": {
+      "decisionHistory": true,
+      "aiConfidence": true,
+      "processDiagram": true
+    }
+  },
+  "diagram": {
+    "id": "distillation-1",
+    "units": [
+      { "id": "feed", "type": "Feed", "x": 20, "y": 70 },
+      { "id": "column", "type": "DistillationColumn", "x": 160, "y": 40 },
+      { "id": "reboiler", "type": "Reboiler", "x": 160, "y": 140 },
+      { "id": "overhead", "type": "Overhead", "x": 320, "y": 30 },
+      { "id": "bottoms", "type": "Bottoms", "x": 320, "y": 150 }
+    ],
+    "connections": [
+      { "from": "feed", "to": "column" },
+      { "from": "column", "to": "overhead" },
+      { "from": "column", "to": "bottoms" },
+      { "from": "reboiler", "to": "column" }
+    ]
+  },
+  "signals": [
+    { "name": "PT-101", "unit": "bar", "start": 62.5, "deltaPerTick": 0.8 },
+    { "name": "FT-202", "unit": "kg/s", "start": 12.9, "deltaPerTick": 0.05 },
+    { "name": "TT-77", "unit": "C", "start": 305.0, "deltaPerTick": 0.2 }
+  ],
+  "decision": {
+    "type": "PressureAnomaly",
+    "confidence": { "start": 0.25, "deltaPerTick": 0.03, "max": 0.95 },
+    "meta": {
+      "unitId": "column",
+      "diagramId": "distillation-1",
+      "reason": "Rising pressure in column section over consecutive ticks."
+    }
+  }
+}

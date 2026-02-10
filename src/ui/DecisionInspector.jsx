@@ -2,8 +2,9 @@ import React from 'react'
 import { FeatureGate } from '../features/FeatureGate.jsx'
 import { DecisionHistoryList } from './DecisionHistoryList.jsx'
 import { DecisionDetailsPanel } from './DecisionDetailsPanel.jsx'
+import { ProcessDiagram } from './ProcessDiagram.jsx'
 
-export function DecisionInspector({ decisions, runtimeConfig }) {
+export function DecisionInspector({ decisions, runtimeConfig, diagram, uiConfig }) {
   const [selectedId, setSelectedId] = React.useState(null)
 
   React.useEffect(() => {
@@ -17,6 +18,8 @@ export function DecisionInspector({ decisions, runtimeConfig }) {
       ? decisions.find((d) => d.id === selectedId) ?? null
       : null
 
+  const latest = Array.isArray(decisions) && decisions.length > 0 ? decisions[0] : null
+
   return (
     <div className="stack">
       <div>
@@ -25,6 +28,10 @@ export function DecisionInspector({ decisions, runtimeConfig }) {
           UI consumes only <code>NormalizedDecision</code>.
         </div>
       </div>
+
+      <FeatureGate name="processDiagram">
+        <ProcessDiagram diagram={diagram} latestDecision={latest} uiConfig={uiConfig} />
+      </FeatureGate>
 
       <FeatureGate
         name="decisionHistory"
@@ -49,4 +56,3 @@ export function DecisionInspector({ decisions, runtimeConfig }) {
     </div>
   )
 }
-

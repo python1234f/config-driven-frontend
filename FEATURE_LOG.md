@@ -9,6 +9,11 @@
 - UI: Client Config Panel (dropdown + checkboxy + JSON view)
 - UI: Decision Inspector (DecisionHistoryList + DecisionDetailsPanel)
 - Graceful degradation: NO SIGNALS + STALE + low confidence (gated)
+- JSON-based time simulations (config is everything)
+- Simulation engine (generic, setInterval, deterministic/no-random)
+- Simulation selector in playground (auto-start on select)
+- Diagram + decision driven by simulation
+- Data-driven UI presentation layer (uiConfig JSON + smooth color interpolation)
 
 ## 🚧 In progress
 - —

@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Industrial AI JSON Simulation",
+  "type": "object",
+  "required": ["id", "tickMs", "durationTicks", "clientConfig", "signals", "decision"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "label": { "type": "string" },
+    "loop": { "type": "boolean", "default": true },
+    "tickMs": { "type": "number", "minimum": 200 },
+    "durationTicks": { "type": "number", "minimum": 1 },
+    "startTimestampMs": {
+      "type": "number",
+      "description": "Optional; if omitted engine falls back to Date.now()",
+      "minimum": 0
+    },
+    "clientConfig": {
+      "type": "object",
+      "required": ["id", "features"],
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "features": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "decisionHistory": { "type": "boolean" },
+            "aiConfidence": { "type": "boolean" },
+            "processDiagram": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "diagram": {
+      "type": "object",
+      "required": ["id", "units", "connections"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "units": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "type", "x", "y"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string" },
+              "type": { "type": "string" },
+              "x": { "type": "number" },
+              "y": { "type": "number" }
+            }
+          }
+        },
+        "connections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to"],
+            "additionalProperties": false,
+            "properties": {
+              "from": { "type": "string" },
+              "to": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "signals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "unit", "start", "deltaPerTick"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "unit": { "type": "string" },
+          "start": { "type": "number" },
+          "deltaPerTick": { "type": "number" },
+          "trend": { "type": "string" }
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "required": ["type", "confidence", "meta"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string" },
+        "confidence": {
+          "type": "object",
+          "required": ["start", "deltaPerTick", "max"],
+          "additionalProperties": false,
+          "properties": {
+            "start": { "type": "number", "minimum": 0, "maximum": 1 },
+            "deltaPerTick": { "type": "number" },
+            "max": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "unitId": { "type": "string" },
+            "diagramId": { "type": "string" },
+            "reason": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}
+

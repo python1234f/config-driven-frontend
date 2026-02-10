@@ -5,6 +5,9 @@ export function ConfigPanel({
   clients,
   activeClientId,
   runtimeConfig,
+  simulations,
+  activeSimulationId,
+  onSelectSimulationId,
   onSelectClientId,
   onSimulateClient,
   onToggleFeature,
@@ -64,7 +67,36 @@ export function ConfigPanel({
               />
               <span>aiConfidence</span>
             </label>
+
+            <label className="row">
+              <input
+                type="checkbox"
+                checked={!!runtimeConfig?.features?.processDiagram}
+                onChange={(e) =>
+                  onToggleFeature('processDiagram', e.target.checked)
+                }
+              />
+              <span>processDiagram</span>
+            </label>
           </div>
+        </div>
+
+        <div className="card stack">
+          <div className="h2">Simulations</div>
+          <div className="muted">
+            Simulation is 100% JSON-driven and starts immediately after selection.
+          </div>
+          <select
+            value={activeSimulationId || ''}
+            onChange={(e) => onSelectSimulationId(e.target.value || null)}
+          >
+            <option value="">(none)</option>
+            {(simulations || []).map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label || s.id}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="card stack">
@@ -75,4 +107,3 @@ export function ConfigPanel({
     </div>
   )
 }
-
