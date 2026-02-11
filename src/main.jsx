@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './styles.css'
+import '@xyflow/react/dist/style.css'
 
 console.log('[BOOT]', 'main.jsx loaded')
 
@@ -10,4 +11,3 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <App />
   </React.StrictMode>,
 )
-

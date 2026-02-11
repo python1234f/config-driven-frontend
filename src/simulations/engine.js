@@ -115,8 +115,6 @@ export function startSimulation(simulation, { onDecision } = {}) {
     )
   }
 
-  console.log('[SIMULATION]', 'loaded config', simulation.id, simulation)
-
   let tickIndex = 0
   let intervalId = null
 
@@ -124,7 +122,6 @@ export function startSimulation(simulation, { onDecision } = {}) {
     const timestampMs = startTimestampMs + tickIndex * simulation.tickMs
     const raw = makeRawDecision(simulation, tickIndex, timestampMs)
 
-    console.log('[SIMULATION]', 'tick', { id: simulation.id, tickIndex, timestampMs })
     onDecision(raw, { tickIndex, timestampMs, simulationId: simulation.id })
 
     tickIndex += 1
@@ -147,4 +144,3 @@ export function startSimulation(simulation, { onDecision } = {}) {
 
   return { stop }
 }
-

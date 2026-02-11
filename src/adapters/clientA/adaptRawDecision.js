@@ -12,8 +12,6 @@
  * }
  */
 export function adaptRawDecisionClientA(raw, clientConfig) {
-  console.log('[ADAPTER]', 'clientA raw->normalized input', raw)
-
   const signals = Array.isArray(raw?.signals)
     ? raw.signals.map((s) => ({
         name: s?.name ?? 'unknown',
@@ -39,7 +37,5 @@ export function adaptRawDecisionClientA(raw, clientConfig) {
     },
   }
 
-  console.log('[ADAPTER]', 'clientA raw->normalized output', normalized)
   return normalized
 }
-
