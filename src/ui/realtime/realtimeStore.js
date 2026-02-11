@@ -77,3 +77,28 @@ export function useRealtimeStore(selector) {
     () => select(state),
   )
 }
+
+export function useRealtimeSelector(selector, isEqual) {
+  const select = typeof selector === 'function' ? selector : (s) => s
+  const equal = typeof isEqual === 'function' ? isEqual : Object.is
+
+  const selectRef = React.useRef(select)
+  const equalRef = React.useRef(equal)
+  selectRef.current = select
+  equalRef.current = equal
+
+  const [selected, setSelected] = React.useState(() => selectRef.current(state))
+  const selectedRef = React.useRef(selected)
+  selectedRef.current = selected
+
+  React.useEffect(() => {
+    return subscribeRealtime(() => {
+      const next = selectRef.current(state)
+      if (equalRef.current(selectedRef.current, next)) return
+      selectedRef.current = next
+      setSelected(next)
+    })
+  }, [])
+
+  return selected
+}
