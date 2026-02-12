@@ -42,6 +42,16 @@ const FLOW_STYLE = {
 }
 
 const EDGE_BASE_STYLE = { stroke: '#cbd5e1', strokeWidth: 2 }
+const EDGE_ALARM_STYLE = { stroke: '#ef4444', strokeWidth: 3 }
+const BASE_MARKER_ID = 'pipe-arrow-base'
+const ALARM_MARKER_ID = 'pipe-arrow-alarm'
+const MIN_ZOOM = 1 / 6
+const SVG_DEFS_STYLE = {
+  position: 'absolute',
+  width: 0,
+  height: 0,
+  pointerEvents: 'none',
+}
 
 const DEFAULT_EDGE_OPTIONS = {
   type: 'smoothstep',
@@ -262,15 +272,12 @@ export const ProcessDiagram = React.memo(function ProcessDiagram({
     )
 
     const edges = []
-    let hasBusMarkerHost = false
     for (let idx = 0; idx < diagram.connections.length; idx += 1) {
       const c = diagram.connections[idx]
       if (!c?.from || !c?.to) continue
       const kind = c?.kind === 'bus' ? 'bus' : 'internal'
       const fromSection = sectionByUnitId.get(c.from) ?? null
       const toSection = sectionByUnitId.get(c.to) ?? null
-      const markerHost = kind === 'bus' && !hasBusMarkerHost
-      if (markerHost) hasBusMarkerHost = true
 
       edges.push({
         id: `${c.from}->${c.to}-${idx}`,
@@ -282,7 +289,6 @@ export const ProcessDiagram = React.memo(function ProcessDiagram({
           kind,
           sourceSection: fromSection,
           targetSection: toSection,
-          markerHost,
         },
       })
     }
@@ -305,7 +311,39 @@ export const ProcessDiagram = React.memo(function ProcessDiagram({
 
   return (
     <div className="card" style={CARD_STYLE}>
-      <RenderCounter name="Diagram" index={0} />
+      <svg
+        aria-hidden="true"
+        focusable="false"
+        width="0"
+        height="0"
+        style={SVG_DEFS_STYLE}
+      >
+        <defs>
+          <marker
+            id={BASE_MARKER_ID}
+            viewBox="0 0 10 10"
+            refX="10"
+            refY="5"
+            markerWidth="7"
+            markerHeight="7"
+            orient="auto"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill={EDGE_BASE_STYLE.stroke} />
+          </marker>
+          <marker
+            id={ALARM_MARKER_ID}
+            viewBox="0 0 10 10"
+            refX="10"
+            refY="5"
+            markerWidth="7"
+            markerHeight="7"
+            orient="auto"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill={EDGE_ALARM_STYLE.stroke} />
+          </marker>
+        </defs>
+      </svg>
+      <RenderCounter name="Diagram" mode="fixed" index={1} />
       <div className="rowWrap" style={HEADER_ROW_STYLE}>
         <div>
           <div className="h2" style={TITLE_STYLE}>
@@ -328,6 +366,8 @@ export const ProcessDiagram = React.memo(function ProcessDiagram({
           defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
           nodesDraggable={false}
           nodesConnectable={false}
+          elementsSelectable={false}
+          minZoom={MIN_ZOOM}
           style={FLOW_STYLE}
         >
           <Background

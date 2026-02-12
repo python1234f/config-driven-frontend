@@ -63,32 +63,6 @@ export const SmartPipeEdge = React.memo(function SmartPipeEdge({
 
   return (
     <>
-      {data?.markerHost ? (
-        <defs>
-          <marker
-            id={BASE_MARKER_ID}
-            viewBox="0 0 10 10"
-            refX="10"
-            refY="5"
-            markerWidth="7"
-            markerHeight="7"
-            orient="auto"
-          >
-            <path d="M 0 0 L 10 5 L 0 10 z" fill={EDGE_BASE_STYLE.stroke} />
-          </marker>
-          <marker
-            id={ALARM_MARKER_ID}
-            viewBox="0 0 10 10"
-            refX="10"
-            refY="5"
-            markerWidth="7"
-            markerHeight="7"
-            orient="auto"
-          >
-            <path d="M 0 0 L 10 5 L 0 10 z" fill={EDGE_ALARM_STYLE.stroke} />
-          </marker>
-        </defs>
-      ) : null}
       <BaseEdge path={edgePath} style={style} markerEnd={`url(#${markerId})`} />
     </>
   )
