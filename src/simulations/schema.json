@@ -38,6 +38,7 @@
       "additionalProperties": false,
       "properties": {
         "id": { "type": "string" },
+        "layout": { "type": "string", "enum": ["absolute", "layered"] },
         "units": {
           "type": "array",
           "items": {
@@ -47,6 +48,7 @@
             "properties": {
               "id": { "type": "string" },
               "type": { "type": "string" },
+              "sectionId": { "type": "string" },
               "x": { "type": "number" },
               "y": { "type": "number" }
             }
@@ -60,7 +62,8 @@
             "additionalProperties": false,
             "properties": {
               "from": { "type": "string" },
-              "to": { "type": "string" }
+              "to": { "type": "string" },
+              "kind": { "type": "string", "enum": ["bus", "internal"] }
             }
           }
         }
@@ -102,12 +105,25 @@
           "additionalProperties": false,
           "properties": {
             "unitId": { "type": "string" },
+            "sectionId": { "type": "string" },
             "diagramId": { "type": "string" },
             "reason": { "type": "string" }
           }
         }
       }
+    },
+    "fault": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "jumpEveryTicks": { "type": "number", "minimum": 1 },
+        "unitIndex": { "type": "number", "minimum": 0 },
+        "sectionPath": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
     }
   }
 }
-

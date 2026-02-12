@@ -5,13 +5,11 @@ import { useRealtimeSelector } from '../realtime/realtimeStore.js'
 const EDGE_BASE_STYLE = { stroke: '#cbd5e1', strokeWidth: 2 }
 const EDGE_ALARM_STYLE = { stroke: '#ef4444', strokeWidth: 3 }
 const BORDER_RADIUS = 10
+const BASE_MARKER_ID = 'pipe-arrow-base'
+const ALARM_MARKER_ID = 'pipe-arrow-alarm'
 const EDGE_ALARM_ANIM_STYLE = {
   strokeDasharray: 5,
   animation: 'dashdraw 0.5s linear infinite',
-}
-
-function sanitizeMarkerId(id) {
-  return String(id).replace(/[^a-zA-Z0-9_-]/g, '-')
 }
 
 function computeAlarmFlag(decision) {
@@ -27,8 +25,6 @@ function shallowEqualEdgeState(a, b) {
 }
 
 export const SmartPipeEdge = React.memo(function SmartPipeEdge({
-  id,
-  source,
   data,
   sourceX,
   sourceY,
@@ -63,23 +59,36 @@ export const SmartPipeEdge = React.memo(function SmartPipeEdge({
   })
 
   const style = edgeAlarm ? { ...EDGE_ALARM_STYLE, ...EDGE_ALARM_ANIM_STYLE } : EDGE_BASE_STYLE
-  const markerId = `pipe-arrow-${sanitizeMarkerId(id)}`
+  const markerId = edgeAlarm ? ALARM_MARKER_ID : BASE_MARKER_ID
 
   return (
     <>
-      <defs>
-        <marker
-          id={markerId}
-          viewBox="0 0 10 10"
-          refX="10"
-          refY="5"
-          markerWidth="7"
-          markerHeight="7"
-          orient="auto"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={style.stroke} />
-        </marker>
-      </defs>
+      {data?.markerHost ? (
+        <defs>
+          <marker
+            id={BASE_MARKER_ID}
+            viewBox="0 0 10 10"
+            refX="10"
+            refY="5"
+            markerWidth="7"
+            markerHeight="7"
+            orient="auto"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill={EDGE_BASE_STYLE.stroke} />
+          </marker>
+          <marker
+            id={ALARM_MARKER_ID}
+            viewBox="0 0 10 10"
+            refX="10"
+            refY="5"
+            markerWidth="7"
+            markerHeight="7"
+            orient="auto"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill={EDGE_ALARM_STYLE.stroke} />
+          </marker>
+        </defs>
+      ) : null}
       <BaseEdge path={edgePath} style={style} markerEnd={`url(#${markerId})`} />
     </>
   )

@@ -100,9 +100,14 @@ export default function App() {
   const [runtimeConfig, setRuntimeConfig] = React.useState(() =>
     cloneClientConfig(baseConfig),
   )
+  const [simulationFeatureDefaults, setSimulationFeatureDefaults] = React.useState(
+    {},
+  )
+  const [featureOverrides, setFeatureOverrides] = React.useState({})
 
   React.useEffect(() => {
     setRuntimeConfig(cloneClientConfig(baseConfig))
+    setFeatureOverrides({})
   }, [baseConfig])
 
   const [diagram, setDiagram] = React.useState(null)
@@ -119,12 +124,37 @@ export default function App() {
     return null
   }, [activeSimulation])
 
+  const mergedFeatures = React.useMemo(
+    () => ({
+      ...(baseConfig?.features || {}),
+      ...(simulationFeatureDefaults || {}),
+      ...(featureOverrides || {}),
+    }),
+    [baseConfig, simulationFeatureDefaults, featureOverrides],
+  )
+
+  const runtimeConfigDiagnostics = React.useMemo(
+    () => ({
+      ...(runtimeConfig || {}),
+      features: mergedFeatures,
+    }),
+    [runtimeConfig, mergedFeatures],
+  )
+
   React.useEffect(() => {
     if (!activeSimulation) return
     const simClientId = activeSimulation?.json?.clientConfig?.id
     if (typeof simClientId === 'string' && simClientId.length > 0) {
       setActiveClientId(simClientId)
     }
+  }, [activeSimulation])
+
+  React.useEffect(() => {
+    const nextDefaults = activeSimulation?.json?.clientConfig?.features
+    setSimulationFeatureDefaults(
+      nextDefaults && typeof nextDefaults === 'object' ? { ...nextDefaults } : {},
+    )
+    setFeatureOverrides({})
   }, [activeSimulation])
 
   React.useEffect(() => {
@@ -137,15 +167,6 @@ export default function App() {
 
     setDiagram(sim?.diagram ?? null)
     resetRealtimeState()
-
-    setRuntimeConfig((prev) => {
-      const next = cloneClientConfig(baseConfig)
-      next.features = {
-        ...(next?.features || {}),
-        ...(sim?.clientConfig?.features || {}),
-      }
-      return next
-    })
   }, [activeSimulation, baseConfig])
 
   React.useEffect(() => {
@@ -189,7 +210,7 @@ export default function App() {
     return () => {
       engine.stop()
     }
-  }, [activeSimulation, runtimeConfig, uiConfig])
+  }, [activeSimulation, runtimeConfig])
 
   const onSimulateClient = React.useCallback(() => {
     const nextId = getRandomClientId()
@@ -198,12 +219,9 @@ export default function App() {
   }, [])
 
   const onToggleFeature = React.useCallback((featureName, enabled) => {
-    setRuntimeConfig((prev) => ({
+    setFeatureOverrides((prev) => ({
       ...prev,
-      features: {
-        ...(prev?.features || {}),
-        [featureName]: !!enabled,
-      },
+      [featureName]: !!enabled,
     }))
   }, [])
 
@@ -226,7 +244,7 @@ export default function App() {
   )
 
   return (
-    <FeatureProvider features={runtimeConfig?.features}>
+    <FeatureProvider features={mergedFeatures}>
       <div style={SHELL_STYLE}>
         <RenderCounter name="App" mode="fixed" index={0} />
         <div style={SHOWCASE_GRID_STYLE}>
@@ -293,7 +311,7 @@ export default function App() {
               <label className="row">
                 <input
                   type="checkbox"
-                  checked={!!runtimeConfig?.features?.processDiagram}
+                  checked={!!mergedFeatures?.processDiagram}
                   onChange={(e) => onToggleFeature('processDiagram', e.target.checked)}
                 />
                 <span>processDiagram</span>
@@ -301,7 +319,7 @@ export default function App() {
               <label className="row">
                 <input
                   type="checkbox"
-                  checked={!!runtimeConfig?.features?.aiConfidence}
+                  checked={!!mergedFeatures?.aiConfidence}
                   onChange={(e) => onToggleFeature('aiConfidence', e.target.checked)}
                 />
                 <span>aiConfidence</span>
@@ -309,7 +327,7 @@ export default function App() {
               <label className="row">
                 <input
                   type="checkbox"
-                  checked={!!runtimeConfig?.features?.decisionHistory}
+                  checked={!!mergedFeatures?.decisionHistory}
                   onChange={(e) => onToggleFeature('decisionHistory', e.target.checked)}
                 />
                 <span>decisionHistory</span>
@@ -327,7 +345,7 @@ export default function App() {
                   Runtime config
                 </summary>
                 <div style={JSON_BLOCK_STYLE}>
-                  <JsonView value={runtimeConfig} />
+                  <JsonView value={runtimeConfigDiagnostics} />
                 </div>
               </details>
               <details className="card" style={DARK_CARD_STYLE}>

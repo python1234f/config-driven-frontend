@@ -86,19 +86,6 @@ const NODE_Y_GAP = 54
 const nodeTypes = { unit: SmartUnitNode }
 const edgeTypes = { bus: SmartPipeEdge }
 
-function findSignal(decision, signalName) {
-  const signals = Array.isArray(decision?.signals) ? decision.signals : []
-  return signals.find((s) => s?.name === signalName) ?? null
-}
-
-function formatSignalValue(signal) {
-  if (!signal) return null
-  const v = typeof signal.value === 'number' ? signal.value : null
-  if (v === null) return null
-  const unit = signal.unit ? ` ${signal.unit}` : ''
-  return `${v.toFixed(2)}${unit}`
-}
-
 function computeAlarmFlag(decision) {
   if (!decision) return false
   const conf = typeof decision.confidence === 'number' ? decision.confidence : 0
@@ -274,22 +261,33 @@ export const ProcessDiagram = React.memo(function ProcessDiagram({
         .map((u) => [u.id, typeof u.sectionId === 'string' ? u.sectionId : null]),
     )
 
-    return diagram.connections
-      .map((c, idx) => {
-        if (!c?.from || !c?.to) return null
-        const kind = c?.kind === 'bus' ? 'bus' : 'internal'
-        const fromSection = sectionByUnitId.get(c.from) ?? null
-        const toSection = sectionByUnitId.get(c.to) ?? null
-        return {
-          id: `${c.from}->${c.to}-${idx}`,
-          source: c.from,
-          target: c.to,
-          animated: kind === 'bus',
-          type: kind === 'bus' ? 'bus' : 'smoothstep',
-          data: kind === 'bus' ? { kind: 'bus', sourceSection: fromSection, targetSection: toSection } : undefined,
-        }
+    const edges = []
+    let hasBusMarkerHost = false
+    for (let idx = 0; idx < diagram.connections.length; idx += 1) {
+      const c = diagram.connections[idx]
+      if (!c?.from || !c?.to) continue
+      const kind = c?.kind === 'bus' ? 'bus' : 'internal'
+      const fromSection = sectionByUnitId.get(c.from) ?? null
+      const toSection = sectionByUnitId.get(c.to) ?? null
+      const markerHost = kind === 'bus' && !hasBusMarkerHost
+      if (markerHost) hasBusMarkerHost = true
+
+      edges.push({
+        id: `${c.from}->${c.to}-${idx}`,
+        source: c.from,
+        target: c.to,
+        animated: kind === 'bus',
+        type: kind === 'bus' ? 'bus' : 'smoothstep',
+        data: {
+          kind,
+          sourceSection: fromSection,
+          targetSection: toSection,
+          markerHost,
+        },
       })
-      .filter(Boolean)
+    }
+
+    return edges
   }, [diagram])
 
   if (!diagram) {
