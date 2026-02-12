@@ -39,6 +39,7 @@ export function adaptRawDecisionClientB(raw, clientConfig) {
     meta: {
       clientId: clientConfig.id,
       unitId: raw?.asset?.id ?? 'unit-unknown',
+      sectionId: typeof raw?.asset?.sectionId === 'string' ? raw.asset.sectionId : null,
       freshnessSec: typeof raw?.ageSec === 'number' ? raw.ageSec : null,
       reason: raw?.rationale ?? 'n/a',
     },

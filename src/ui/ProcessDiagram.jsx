@@ -45,7 +45,7 @@ const EDGE_BASE_STYLE = { stroke: '#cbd5e1', strokeWidth: 2 }
 
 const DEFAULT_EDGE_OPTIONS = {
   type: 'smoothstep',
-  animated: true,
+  animated: false,
   style: EDGE_BASE_STYLE,
   pathOptions: { borderRadius: 10 },
 }
@@ -84,7 +84,7 @@ const NODE_H = 76
 const NODE_X_GAP = 120
 const NODE_Y_GAP = 54
 const nodeTypes = { unit: SmartUnitNode }
-const edgeTypes = { pipe: SmartPipeEdge }
+const edgeTypes = { bus: SmartPipeEdge }
 
 function findSignal(decision, signalName) {
   const signals = Array.isArray(decision?.signals) ? decision.signals : []
@@ -108,24 +108,26 @@ function computeAlarmFlag(decision) {
 function shallowEqualBadgeState(a, b) {
   if (a === b) return true
   if (!a || !b) return false
-  return a.ptText === b.ptText && a.alarm === b.alarm
+  return a.label === b.label && a.alarm === b.alarm
 }
 
 const PtBadge = React.memo(function PtBadge() {
   const select = React.useCallback((state) => {
     const d = state.latestDecision
     const alarm = computeAlarmFlag(d)
-    const ptText = formatSignalValue(findSignal(d, 'PT-101'))
-    return { ptText, alarm }
+    const sectionId = d?.meta?.sectionId ?? null
+    const unitId = d?.meta?.unitId ?? null
+    const label = sectionId ? `ALARM ${sectionId}${unitId ? ` • ${unitId}` : ''}` : 'ALARM —'
+    return { label, alarm }
   }, [])
 
-  const { ptText, alarm } = useRealtimeSelector(select, shallowEqualBadgeState)
+  const { label, alarm } = useRealtimeSelector(select, shallowEqualBadgeState)
 
   return (
     <span style={SIGNAL_BADGE_STYLE}>
       <span style={alarm ? SIGNAL_DOT_ALARM_STYLE : SIGNAL_DOT_OK_STYLE} />
-      <span style={SIGNAL_LABEL_STYLE}>PT-101</span>
-      <span style={SIGNAL_VALUE_STYLE}>{ptText ?? '—'}</span>
+      <span style={SIGNAL_LABEL_STYLE}>STATUS</span>
+      <span style={SIGNAL_VALUE_STYLE}>{label}</span>
     </span>
   )
 })
@@ -134,6 +136,9 @@ function buildLayoutFromUnits(units) {
   return units.map((u) => ({
     id: u.id,
     type: u.type || 'Unit',
+    x: typeof u.x === 'number' ? u.x : null,
+    y: typeof u.y === 'number' ? u.y : null,
+    sectionId: typeof u.sectionId === 'string' ? u.sectionId : null,
   }))
 }
 
@@ -234,15 +239,19 @@ export const ProcessDiagram = React.memo(function ProcessDiagram({
   const baseNodes = React.useMemo(() => {
     if (!diagram?.units?.length) return []
     const units = buildLayoutFromUnits(diagram.units)
-    const positions = computeLayeredLayout({
-      units,
-      connections: diagram.connections || [],
-    })
+    const useAbsolute = diagram?.layout === 'absolute'
+    const positions =
+      useAbsolute && units.every((u) => typeof u.x === 'number' && typeof u.y === 'number')
+        ? null
+        : computeLayeredLayout({
+            units,
+            connections: diagram.connections || [],
+          })
 
     return units.map((u) => ({
       id: u.id,
       type: 'unit',
-      position: positions.get(u.id) || { x: 40, y: 40 },
+      position: positions ? positions.get(u.id) || { x: 40, y: 40 } : { x: u.x, y: u.y },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
       draggable: false,
@@ -252,21 +261,32 @@ export const ProcessDiagram = React.memo(function ProcessDiagram({
         subtitle: u.id,
         uiConfig,
         transitionMs,
+        sectionId: u.sectionId,
       },
     }))
   }, [diagram, uiConfig, transitionMs])
 
   const baseEdges = React.useMemo(() => {
     if (!diagram?.connections?.length) return []
+    const sectionByUnitId = new Map(
+      (diagram.units || [])
+        .filter((u) => typeof u?.id === 'string')
+        .map((u) => [u.id, typeof u.sectionId === 'string' ? u.sectionId : null]),
+    )
+
     return diagram.connections
       .map((c, idx) => {
         if (!c?.from || !c?.to) return null
+        const kind = c?.kind === 'bus' ? 'bus' : 'internal'
+        const fromSection = sectionByUnitId.get(c.from) ?? null
+        const toSection = sectionByUnitId.get(c.to) ?? null
         return {
           id: `${c.from}->${c.to}-${idx}`,
           source: c.from,
           target: c.to,
-          animated: true,
-          type: 'pipe',
+          animated: kind === 'bus',
+          type: kind === 'bus' ? 'bus' : 'smoothstep',
+          data: kind === 'bus' ? { kind: 'bus', sourceSection: fromSection, targetSection: toSection } : undefined,
         }
       })
       .filter(Boolean)

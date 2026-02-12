@@ -46,6 +46,7 @@ function shallowEqualUnitState(a, b) {
   if (!a || !b) return false
   return (
     a.fill === b.fill &&
+    a.sectionAlarm === b.sectionAlarm &&
     a.isActive === b.isActive &&
     a.isAlarm === b.isAlarm &&
     a.valueText === b.valueText
@@ -56,6 +57,7 @@ export const SmartUnitNode = React.memo(function SmartUnitNode({ id, data }) {
   const title = data?.title ?? 'Unit'
   const subtitle = data?.subtitle ?? ''
   const uiConfig = data?.uiConfig ?? null
+  const sectionId = data?.sectionId ?? null
   const transitionMs = typeof data?.transitionMs === 'number' ? data.transitionMs : 0
 
   const select = React.useCallback(
@@ -64,29 +66,37 @@ export const SmartUnitNode = React.memo(function SmartUnitNode({ id, data }) {
       const isActive = decision?.meta?.unitId === id
       const isAlarm = isActive ? computeAlarmFlag(decision) : false
 
+      const sectionAlarm =
+        !!sectionId &&
+        computeAlarmFlag(decision) &&
+        decision?.meta?.sectionId === sectionId
+
       const hasFillCfg = !!uiConfig?.units?.[id]?.fill
-      const fill =
-        hasFillCfg && decision && uiConfig
+      const fill = sectionAlarm
+        ? '#ef4444'
+        : hasFillCfg && decision && uiConfig
           ? getUnitFillColor({ unitId: id, latestDecision: decision, uiConfig })
           : null
 
       const valueText = isActive ? formatSignalValue(findSignal(decision, 'PT-101')) : null
 
-      return { fill, isActive, isAlarm, valueText }
+      return { fill, sectionAlarm, isActive, isAlarm, valueText }
     },
-    [id, uiConfig],
+    [id, uiConfig, sectionId],
   )
 
-  const { fill, isActive, isAlarm, valueText } = useRealtimeSelector(
+  const { fill, sectionAlarm, isActive, isAlarm, valueText } = useRealtimeSelector(
     select,
     shallowEqualUnitState,
   )
 
   const { accent, bg, border, ring, textFill, textStroke } = React.useMemo(() => {
     const accent = fill || '#22c55e'
-    const bg = fill ? hexToRgba(fill, 0.16) || NODE_DEFAULT_BG : NODE_DEFAULT_BG
+    const bg = fill
+      ? hexToRgba(fill, sectionAlarm ? 0.12 : 0.16) || NODE_DEFAULT_BG
+      : NODE_DEFAULT_BG
     const border = fill
-      ? hexToRgba(fill, 0.42) || 'rgba(148, 163, 184, 0.26)'
+      ? hexToRgba(fill, sectionAlarm ? 0.6 : 0.42) || 'rgba(148, 163, 184, 0.26)'
       : NODE_DEFAULT_BORDER
 
     const ring = isActive
@@ -100,7 +110,7 @@ export const SmartUnitNode = React.memo(function SmartUnitNode({ id, data }) {
     const textStroke = readable?.stroke ?? NODE_DEFAULT_TEXT_STROKE
 
     return { accent, bg, border, ring, textFill, textStroke }
-  }, [fill, isActive, isAlarm])
+  }, [fill, sectionAlarm, isActive, isAlarm])
 
   const rootStyle = React.useMemo(() => {
     return {
@@ -180,4 +190,3 @@ export const SmartUnitNode = React.memo(function SmartUnitNode({ id, data }) {
     </div>
   )
 })
-

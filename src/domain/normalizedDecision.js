@@ -10,6 +10,7 @@
  * @typedef {Object} NormalizedDecisionMeta
  * @property {string} clientId
  * @property {string} unitId
+ * @property {(string|null)=} sectionId
  * @property {(number|null)=} freshnessSec
  * @property {string=} reason
  */
@@ -26,4 +27,3 @@
  */
 
 export {}
-

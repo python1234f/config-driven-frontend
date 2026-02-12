@@ -5,6 +5,10 @@ import { useRealtimeSelector } from '../realtime/realtimeStore.js'
 const EDGE_BASE_STYLE = { stroke: '#cbd5e1', strokeWidth: 2 }
 const EDGE_ALARM_STYLE = { stroke: '#ef4444', strokeWidth: 3 }
 const BORDER_RADIUS = 10
+const EDGE_ALARM_ANIM_STYLE = {
+  strokeDasharray: 5,
+  animation: 'dashdraw 0.5s linear infinite',
+}
 
 function sanitizeMarkerId(id) {
   return String(id).replace(/[^a-zA-Z0-9_-]/g, '-')
@@ -19,12 +23,13 @@ function computeAlarmFlag(decision) {
 function shallowEqualEdgeState(a, b) {
   if (a === b) return true
   if (!a || !b) return false
-  return a.alarmSource === b.alarmSource && a.isAlarm === b.isAlarm
+  return a.sectionId === b.sectionId && a.isAlarm === b.isAlarm
 }
 
 export const SmartPipeEdge = React.memo(function SmartPipeEdge({
   id,
   source,
+  data,
   sourceX,
   sourceY,
   targetX,
@@ -35,15 +40,17 @@ export const SmartPipeEdge = React.memo(function SmartPipeEdge({
   const select = React.useCallback(
     (state) => {
       const d = state.latestDecision
-      const alarmSource = d?.meta?.unitId ?? null
+      const sectionId = d?.meta?.sectionId ?? null
       const isAlarm = computeAlarmFlag(d)
-      return { alarmSource, isAlarm }
+      return { sectionId, isAlarm }
     },
     [],
   )
 
-  const { alarmSource, isAlarm } = useRealtimeSelector(select, shallowEqualEdgeState)
-  const edgeAlarm = !!alarmSource && isAlarm && source === alarmSource
+  const { sectionId, isAlarm } = useRealtimeSelector(select, shallowEqualEdgeState)
+  const sourceSection = data?.sourceSection ?? null
+  const isBus = data?.kind === 'bus'
+  const edgeAlarm = isBus && !!sectionId && isAlarm && sourceSection === sectionId
 
   const [edgePath] = getSmoothStepPath({
     sourceX,
@@ -55,7 +62,7 @@ export const SmartPipeEdge = React.memo(function SmartPipeEdge({
     borderRadius: BORDER_RADIUS,
   })
 
-  const style = edgeAlarm ? EDGE_ALARM_STYLE : EDGE_BASE_STYLE
+  const style = edgeAlarm ? { ...EDGE_ALARM_STYLE, ...EDGE_ALARM_ANIM_STYLE } : EDGE_BASE_STYLE
   const markerId = `pipe-arrow-${sanitizeMarkerId(id)}`
 
   return (
@@ -77,4 +84,3 @@ export const SmartPipeEdge = React.memo(function SmartPipeEdge({
     </>
   )
 })
-

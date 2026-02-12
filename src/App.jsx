@@ -7,6 +7,8 @@ import { JsonView } from './ui/common/JsonView.jsx'
 import { getClientConfig, getRandomClientId, listClients } from './config/index.js'
 import pressureRiseSimulation from './examples/pressure-rise-simulation.json'
 import pressureRiseUi from './examples/pressure-rise-ui.json'
+import refineryMeshSimulation from './examples/refinery-mesh-simulation.json'
+import refineryMeshUi from './examples/refinery-mesh-ui.json'
 import { startSimulation } from './simulations/engine.js'
 import { validateSimulation } from './simulations/validate.js'
 import {
@@ -16,7 +18,7 @@ import {
 } from './ui/realtime/realtimeStore.js'
 import { RenderCounter } from './ui/debug/RenderCounter.jsx'
 
-const DEFAULT_SIMULATION_ID = pressureRiseSimulation.id || 'pressure-rise'
+const DEFAULT_SIMULATION_ID = refineryMeshSimulation.id || 'refinery-mesh'
 const PT_HISTORY_LIMIT = 50
 const DECISION_HISTORY_LIMIT = 12
 
@@ -75,6 +77,11 @@ export default function App() {
   const simulations = React.useMemo(
     () => [
       {
+        id: refineryMeshSimulation.id,
+        label: refineryMeshSimulation.label,
+        json: refineryMeshSimulation,
+      },
+      {
         id: pressureRiseSimulation.id,
         label: pressureRiseSimulation.label,
         json: pressureRiseSimulation,
@@ -108,6 +115,7 @@ export default function App() {
   const uiConfig = React.useMemo(() => {
     if (!activeSimulation) return null
     if (activeSimulation.id === pressureRiseSimulation.id) return pressureRiseUi
+    if (activeSimulation.id === refineryMeshSimulation.id) return refineryMeshUi
     return null
   }, [activeSimulation])
 

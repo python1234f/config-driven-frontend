@@ -1,0 +1,7 @@
+{
+  "id": "ui-refinery-mesh-v1",
+  "version": 1,
+  "motion": {
+    "transitionMs": 120
+  }
+}
