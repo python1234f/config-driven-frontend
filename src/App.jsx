@@ -7,6 +7,7 @@ import { JsonView } from './ui/common/JsonView.jsx'
 import { getClientConfig, getRandomClientId, listClients } from './config/index.js'
 import pressureRiseSimulation from './examples/pressure-rise-simulation.json'
 import pressureRiseUi from './examples/pressure-rise-ui.json'
+import quantumCoreSimulation from './examples/quantum-core-simulation.json'
 import refineryMeshSimulation from './examples/refinery-mesh-simulation.json'
 import refineryMeshUi from './examples/refinery-mesh-ui.json'
 import { startSimulation } from './simulations/engine.js'
@@ -18,7 +19,7 @@ import {
 } from './ui/realtime/realtimeStore.js'
 import { RenderCounter } from './ui/debug/RenderCounter.jsx'
 
-const DEFAULT_SIMULATION_ID = refineryMeshSimulation.id || 'refinery-mesh'
+const DEFAULT_SIMULATION_ID = quantumCoreSimulation.id || 'quantum-core-v1'
 const PT_HISTORY_LIMIT = 50
 const DECISION_HISTORY_LIMIT = 12
 
@@ -77,6 +78,11 @@ export default function App() {
   const simulations = React.useMemo(
     () => [
       {
+        id: quantumCoreSimulation.id,
+        label: quantumCoreSimulation.label,
+        json: quantumCoreSimulation,
+      },
+      {
         id: refineryMeshSimulation.id,
         label: refineryMeshSimulation.label,
         json: refineryMeshSimulation,
@@ -120,6 +126,7 @@ export default function App() {
   const uiConfig = React.useMemo(() => {
     if (!activeSimulation) return null
     if (activeSimulation.id === pressureRiseSimulation.id) return pressureRiseUi
+    if (activeSimulation.id === quantumCoreSimulation.id) return refineryMeshUi
     if (activeSimulation.id === refineryMeshSimulation.id) return refineryMeshUi
     return null
   }, [activeSimulation])
@@ -261,7 +268,11 @@ export default function App() {
               </div>
             }
           >
-            <ProcessDiagram diagram={diagram} uiConfig={uiConfig} />
+            <ProcessDiagram
+              diagram={diagram}
+              uiConfig={uiConfig}
+              simulationJson={activeSimulation?.json || null}
+            />
           </FeatureGate>
           <DecisionInspector />
         </div>

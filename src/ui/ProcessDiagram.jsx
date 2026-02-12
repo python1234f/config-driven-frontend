@@ -1,8 +1,6 @@
 import React from 'react'
 import { ReactFlow, Background, Controls, Position } from '@xyflow/react'
-import {
-  getTransitionMs,
-} from '../presentation/uiStyle.js'
+import { getTransitionMs } from '../presentation/uiStyle.js'
 import { RenderCounter } from './debug/RenderCounter.jsx'
 import { SmartUnitNode } from './nodes/SmartUnitNode.jsx'
 import { SmartPipeEdge } from './edges/SmartPipeEdge.jsx'
@@ -46,6 +44,9 @@ const EDGE_ALARM_STYLE = { stroke: '#ef4444', strokeWidth: 3 }
 const BASE_MARKER_ID = 'pipe-arrow-base'
 const ALARM_MARKER_ID = 'pipe-arrow-alarm'
 const MIN_ZOOM = 1 / 6
+const INTRO_TICK_MS_DEFAULT = 70
+const INTRO_TICK_MS_MIN = 30
+const INTRO_FIT_PADDING = 0.32
 const SVG_DEFS_STYLE = {
   position: 'absolute',
   width: 0,
@@ -114,7 +115,9 @@ const PtBadge = React.memo(function PtBadge() {
     const alarm = computeAlarmFlag(d)
     const sectionId = d?.meta?.sectionId ?? null
     const unitId = d?.meta?.unitId ?? null
-    const label = sectionId ? `ALARM ${sectionId}${unitId ? ` • ${unitId}` : ''}` : 'ALARM —'
+    const label = sectionId
+      ? `ALARM ${sectionId}${unitId ? ` • ${unitId}` : ''}`
+      : 'ALARM —'
     return { label, alarm }
   }, [])
 
@@ -203,9 +206,13 @@ function computeLayeredLayout({ units, connections }) {
       const pa = incoming.get(a) || []
       const pb = incoming.get(b) || []
       const ba =
-        pa.length ? pa.reduce((acc, p) => acc + (orderById.get(p) ?? 0), 0) / pa.length : 0
+        pa.length
+          ? pa.reduce((acc, p) => acc + (orderById.get(p) ?? 0), 0) / pa.length
+          : 0
       const bb =
-        pb.length ? pb.reduce((acc, p) => acc + (orderById.get(p) ?? 0), 0) / pb.length : 0
+        pb.length
+          ? pb.reduce((acc, p) => acc + (orderById.get(p) ?? 0), 0) / pb.length
+          : 0
       if (ba !== bb) return ba - bb
       return (orderById.get(a) ?? 0) - (orderById.get(b) ?? 0)
     })
@@ -227,18 +234,106 @@ function computeLayeredLayout({ units, connections }) {
   return positions
 }
 
+function buildIntroTimeline(diagram) {
+  const units = Array.isArray(diagram?.units) ? diagram.units : []
+  const connections = Array.isArray(diagram?.connections) ? diagram.connections : []
+
+  const events = []
+
+  for (let i = 0; i < units.length; i += 1) {
+    events.push({
+      type: 'node.add',
+      jsonPath: `$.diagram.units[${i}]`,
+      targetId: units[i]?.id || `unit-${i}`,
+    })
+  }
+
+  for (let i = 0; i < connections.length; i += 1) {
+    const c = connections[i]
+    events.push({
+      type: 'edge.add',
+      jsonPath: `$.diagram.connections[${i}]`,
+      targetId: `${c?.from || 'x'}->${c?.to || 'y'}-${i}`,
+    })
+  }
+
+  return events
+}
+
+function stringifyPrimitive(value) {
+  if (typeof value === 'undefined') return 'null'
+  return JSON.stringify(value)
+}
+
+function buildJsonLinesModel(value) {
+  const lines = []
+
+  function pushLine(text, path = null) {
+    lines.push({ text, path })
+  }
+
+  function addCommaToLastLine() {
+    if (!lines.length) return
+    lines[lines.length - 1].text += ','
+  }
+
+  function render(currentValue, path, indent, keyLabel = null) {
+    const pad = ' '.repeat(indent)
+    const keyPrefix =
+      keyLabel == null ? '' : `${JSON.stringify(String(keyLabel))}: `
+
+    if (currentValue === null || typeof currentValue !== 'object') {
+      pushLine(`${pad}${keyPrefix}${stringifyPrimitive(currentValue)}`, path)
+      return
+    }
+
+    if (Array.isArray(currentValue)) {
+      pushLine(`${pad}${keyPrefix}[`, path)
+      for (let i = 0; i < currentValue.length; i += 1) {
+        render(currentValue[i], `${path}[${i}]`, indent + 2)
+        if (i < currentValue.length - 1) addCommaToLastLine()
+      }
+      pushLine(`${pad}]`)
+      return
+    }
+
+    const entries = Object.entries(currentValue)
+    pushLine(`${pad}${keyPrefix}{`, path)
+    for (let i = 0; i < entries.length; i += 1) {
+      const [key, nextValue] = entries[i]
+      render(nextValue, `${path}.${key}`, indent + 2, key)
+      if (i < entries.length - 1) addCommaToLastLine()
+    }
+    pushLine(`${pad}}`)
+  }
+
+  render(value, '$', 0)
+  return { lines }
+}
+
 export const ProcessDiagram = React.memo(function ProcessDiagram({
   diagram,
   uiConfig,
+  simulationJson,
 }) {
   const transitionMs = getTransitionMs(uiConfig)
+
+  const introConfig = simulationJson?.intro
+  const showcaseIntroEnabled = !!introConfig && introConfig.enabled !== false
+
+  const introTickMsRaw = introConfig?.speedMs
+  const introTickMs =
+    typeof introTickMsRaw === 'number' && Number.isFinite(introTickMsRaw)
+      ? Math.max(INTRO_TICK_MS_MIN, introTickMsRaw)
+      : INTRO_TICK_MS_DEFAULT
 
   const baseNodes = React.useMemo(() => {
     if (!diagram?.units?.length) return []
     const units = buildLayoutFromUnits(diagram.units)
     const useAbsolute = diagram?.layout === 'absolute'
     const positions =
-      useAbsolute && units.every((u) => typeof u.x === 'number' && typeof u.y === 'number')
+      useAbsolute &&
+      units.every((u) => typeof u.x === 'number' && typeof u.y === 'number')
         ? null
         : computeLayeredLayout({
             units,
@@ -248,7 +343,9 @@ export const ProcessDiagram = React.memo(function ProcessDiagram({
     return units.map((u) => ({
       id: u.id,
       type: 'unit',
-      position: positions ? positions.get(u.id) || { x: 40, y: 40 } : { x: u.x, y: u.y },
+      position: positions
+        ? positions.get(u.id) || { x: 40, y: 40 }
+        : { x: u.x, y: u.y },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
       draggable: false,
@@ -296,6 +393,155 @@ export const ProcessDiagram = React.memo(function ProcessDiagram({
     return edges
   }, [diagram])
 
+  const introTimeline = React.useMemo(() => {
+    if (!showcaseIntroEnabled) return []
+    return buildIntroTimeline(diagram)
+  }, [showcaseIntroEnabled, diagram])
+
+  const [introState, setIntroState] = React.useState(() => ({
+    nodeCount: 0,
+    edgeCount: 0,
+    activePath: null,
+    eventIndex: -1,
+  }))
+  const reactFlowRef = React.useRef(null)
+  const [flowReady, setFlowReady] = React.useState(false)
+
+  const onFlowInit = React.useCallback((instance) => {
+    reactFlowRef.current = instance
+    setFlowReady(true)
+  }, [])
+
+  React.useEffect(() => {
+    if (!showcaseIntroEnabled || introTimeline.length === 0) {
+      setIntroState({
+        nodeCount: baseNodes.length,
+        edgeCount: baseEdges.length,
+        activePath: null,
+        eventIndex: -1,
+      })
+      return
+    }
+
+    setIntroState({
+      nodeCount: 0,
+      edgeCount: 0,
+      activePath: null,
+      eventIndex: -1,
+    })
+
+    let nextEventIndex = -1
+    const timer = setInterval(() => {
+      nextEventIndex += 1
+      const event = introTimeline[nextEventIndex]
+      if (!event) {
+        clearInterval(timer)
+        return
+      }
+
+      setIntroState((prev) => ({
+        nodeCount: prev.nodeCount + (event.type === 'node.add' ? 1 : 0),
+        edgeCount: prev.edgeCount + (event.type === 'edge.add' ? 1 : 0),
+        activePath: event.jsonPath,
+        eventIndex: nextEventIndex,
+      }))
+
+      if (nextEventIndex >= introTimeline.length - 1) {
+        clearInterval(timer)
+      }
+    }, introTickMs)
+
+    return () => clearInterval(timer)
+  }, [
+    showcaseIntroEnabled,
+    introTimeline,
+    introTickMs,
+    baseNodes.length,
+    baseEdges.length,
+  ])
+
+  const visibleNodes = React.useMemo(() => {
+    if (!showcaseIntroEnabled) return baseNodes
+    const count = Math.max(0, Math.min(baseNodes.length, introState.nodeCount))
+    return baseNodes.slice(0, count)
+  }, [showcaseIntroEnabled, baseNodes, introState.nodeCount])
+
+  const visibleEdges = React.useMemo(() => {
+    if (!showcaseIntroEnabled) return baseEdges
+    const count = Math.max(0, Math.min(baseEdges.length, introState.edgeCount))
+    return baseEdges.slice(0, count)
+  }, [showcaseIntroEnabled, baseEdges, introState.edgeCount])
+
+  const jsonLines = React.useMemo(() => {
+    if (!showcaseIntroEnabled) return []
+    const model = buildJsonLinesModel(simulationJson || {})
+    return model.lines
+  }, [showcaseIntroEnabled, simulationJson])
+
+  const jsonLineRefs = React.useRef(new Map())
+  const jsonViewportRef = React.useRef(null)
+
+  React.useEffect(() => {
+    if (!showcaseIntroEnabled) return
+    if (!introState.activePath) return
+
+    const viewportEl = jsonViewportRef.current
+    const targetLine = jsonLineRefs.current.get(introState.activePath)
+    if (!viewportEl || !targetLine) return
+
+    const viewportRect = viewportEl.getBoundingClientRect()
+    const lineRect = targetLine.getBoundingClientRect()
+    const deltaTop = lineRect.top - viewportRect.top
+    const desiredTop =
+      viewportEl.scrollTop +
+      deltaTop -
+      (viewportEl.clientHeight / 2 - targetLine.clientHeight / 2)
+
+    const maxTop = Math.max(0, viewportEl.scrollHeight - viewportEl.clientHeight)
+    const clampedTop = Math.max(0, Math.min(maxTop, desiredTop))
+
+    viewportEl.scrollTo({ top: clampedTop, behavior: 'smooth' })
+  }, [showcaseIntroEnabled, introState.activePath, introState.eventIndex])
+
+  React.useEffect(() => {
+    if (!showcaseIntroEnabled) return
+    if (!flowReady) return
+    if (!visibleNodes.length) return
+
+    const instance = reactFlowRef.current
+    if (!instance || typeof instance.fitView !== 'function') return
+
+    const viewport = instance.getViewport?.()
+    const fitOptions = {
+      padding: INTRO_FIT_PADDING,
+      duration: Math.max(140, Math.round(introTickMs * 1.6)),
+      includeHiddenNodes: false,
+    }
+
+    if (typeof viewport?.zoom === 'number') {
+      fitOptions.maxZoom = viewport.zoom
+    }
+
+    const frame = requestAnimationFrame(() => {
+      instance.fitView(fitOptions)
+    })
+
+    return () => cancelAnimationFrame(frame)
+  }, [
+    showcaseIntroEnabled,
+    flowReady,
+    introTickMs,
+    visibleNodes.length,
+    visibleEdges.length,
+    introState.eventIndex,
+  ])
+
+  const introProgressText = React.useMemo(() => {
+    if (!showcaseIntroEnabled || introTimeline.length === 0) return null
+    const current = Math.min(introState.eventIndex + 1, introTimeline.length)
+    return `${current}/${introTimeline.length}`
+  }, [showcaseIntroEnabled, introTimeline.length, introState.eventIndex])
+
   if (!diagram) {
     return (
       <div className="card" style={CARD_STYLE}>
@@ -308,6 +554,33 @@ export const ProcessDiagram = React.memo(function ProcessDiagram({
       </div>
     )
   }
+
+  const flowCanvas = (
+    <div style={FLOW_WRAP_STYLE}>
+      <ReactFlow
+        key={`${diagram.id}-${uiConfig?.id || ''}`}
+        nodes={visibleNodes}
+        edges={visibleEdges}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable={false}
+        minZoom={MIN_ZOOM}
+        style={FLOW_STYLE}
+        onInit={onFlowInit}
+      >
+        <Background
+          variant="dots"
+          gap={18}
+          size={1}
+          color="rgba(148, 163, 184, 0.22)"
+        />
+        <Controls showInteractive={false} />
+      </ReactFlow>
+    </div>
+  )
 
   return (
     <div className="card" style={CARD_STYLE}>
@@ -351,34 +624,63 @@ export const ProcessDiagram = React.memo(function ProcessDiagram({
           </div>
           <div className="muted" style={MUTED_STYLE}>
             {diagram.id}
+            {showcaseIntroEnabled && introProgressText
+              ? ` • intro ${introProgressText}`
+              : ''}
           </div>
         </div>
         <PtBadge />
       </div>
 
-      <div style={FLOW_WRAP_STYLE}>
-        <ReactFlow
-          key={`${diagram.id}-${uiConfig?.id || ''}`}
-          defaultNodes={baseNodes}
-          defaultEdges={baseEdges}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
-          nodesDraggable={false}
-          nodesConnectable={false}
-          elementsSelectable={false}
-          minZoom={MIN_ZOOM}
-          style={FLOW_STYLE}
-        >
-          <Background
-            variant="dots"
-            gap={18}
-            size={1}
-            color="rgba(148, 163, 184, 0.22)"
-          />
-          <Controls showInteractive={false} />
-        </ReactFlow>
-      </div>
+      {showcaseIntroEnabled ? (
+        <div className="processIntroSplit">
+          {flowCanvas}
+
+          <aside className="introJsonPanel" aria-live="polite">
+            <div className="rowWrap" style={HEADER_ROW_STYLE}>
+              <div>
+                <div className="h2" style={TITLE_STYLE}>
+                  JSON Sequence
+                </div>
+                <div className="muted" style={MUTED_STYLE}>
+                  Synchronized highlight and auto-focus
+                </div>
+              </div>
+              {introProgressText ? (
+                <span className="introJsonProgress">step {introProgressText}</span>
+              ) : null}
+            </div>
+            <div ref={jsonViewportRef} className="introJsonViewport">
+              <pre className="introJsonPre">
+                <code>
+                  {jsonLines.map((line, index) => {
+                    const isActive = line.path === introState.activePath
+                    const lineKey = `${index}-${line.path || 'none'}-${
+                      isActive ? introState.eventIndex : 'idle'
+                    }`
+                    return (
+                      <span
+                        key={lineKey}
+                        ref={(el) => {
+                          if (!line.path) return
+                          if (el) jsonLineRefs.current.set(line.path, el)
+                          else jsonLineRefs.current.delete(line.path)
+                        }}
+                        className={isActive ? 'introJsonLine active' : 'introJsonLine'}
+                      >
+                        {line.text}
+                        {'\n'}
+                      </span>
+                    )
+                  })}
+                </code>
+              </pre>
+            </div>
+          </aside>
+        </div>
+      ) : (
+        flowCanvas
+      )}
     </div>
   )
 })

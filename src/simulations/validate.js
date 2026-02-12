@@ -17,6 +17,26 @@ export function validateSimulation(simulation) {
     errors.push('durationTicks: number >= 1 required')
   }
 
+  if (simulation.intro != null) {
+    if (!simulation.intro || typeof simulation.intro !== 'object') {
+      errors.push('intro: object expected when provided')
+    } else {
+      if (
+        simulation.intro.enabled != null &&
+        typeof simulation.intro.enabled !== 'boolean'
+      ) {
+        errors.push('intro.enabled: boolean expected')
+      }
+      if (
+        simulation.intro.speedMs != null &&
+        (typeof simulation.intro.speedMs !== 'number' ||
+          simulation.intro.speedMs < 30)
+      ) {
+        errors.push('intro.speedMs: number >= 30 expected')
+      }
+    }
+  }
+
   if (!simulation.clientConfig || typeof simulation.clientConfig !== 'object') {
     errors.push('clientConfig: required object')
   } else {
@@ -33,4 +53,3 @@ export function validateSimulation(simulation) {
 
   return errors
 }
-
