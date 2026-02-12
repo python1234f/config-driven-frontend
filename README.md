@@ -5,6 +5,8 @@
 > **A React 18 Proof-of-Concept designed for extreme rendering performance.**
 > Visualizing real-time industrial data (SCADA) across hundreds of interactive nodes.
 
+Demo: https://elaborate-cendol-777531.netlify.app/
+
 ## 💼 Executive Summary (For Recruiters & Product Owners)
 
 This project demonstrates a **high-performance frontend architecture** capable of handling heavy data streams typical in Industrial IoT, FinTech, or Observability platforms.
